@@ -12,3 +12,6 @@ __pycache__/
 # Client data must never be committed
 clients/
 !clients/.gitkeep
+
+# Maintainer notes (private; public-facing doc is README.md)
+CLAUDE.md
