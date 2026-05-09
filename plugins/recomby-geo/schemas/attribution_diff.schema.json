@@ -1,0 +1,146 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://recomby.ai/schemas/attribution_diff.schema.json",
+  "title": "GEO Attribution Diff",
+  "description": "Output of 07-reaudit. Compares two visibility_baseline runs and attributes movement to specific content/distribution actions taken between them. This is the closing-of-loop artifact that proves (or disproves) GEO ROI.",
+  "type": "object",
+  "required": ["meta", "query_movements", "summary"],
+  "additionalProperties": false,
+  "properties": {
+    "meta": {
+      "type": "object",
+      "required": ["client_slug", "generated_at", "schema_version", "previous_baseline", "current_baseline"],
+      "additionalProperties": false,
+      "properties": {
+        "client_slug": { "type": "string" },
+        "generated_at": { "type": "string", "format": "date-time" },
+        "schema_version": { "type": "string", "const": "0.1.0" },
+        "previous_baseline": {
+          "type": "object",
+          "required": ["captured_at", "round"],
+          "properties": {
+            "captured_at": { "type": "string", "format": "date-time" },
+            "round": { "type": "integer", "minimum": 1 },
+            "overall_visibility_score": { "type": "number" }
+          }
+        },
+        "current_baseline": {
+          "type": "object",
+          "required": ["captured_at", "round"],
+          "properties": {
+            "captured_at": { "type": "string", "format": "date-time" },
+            "round": { "type": "integer", "minimum": 2 },
+            "overall_visibility_score": { "type": "number" }
+          }
+        },
+        "actions_in_window": {
+          "type": "array",
+          "description": "Every distribution/production event between the two baselines, drawn from drafts/ and distribution/ logs.",
+          "items": {
+            "type": "object",
+            "required": ["action_type", "action_id", "shipped_at"],
+            "properties": {
+              "action_type": { "type": "string", "enum": ["content-published", "schema-deployed", "internal-link-added", "third-party-mention", "site-fix", "other"] },
+              "action_id": { "type": "string", "description": "Slug from priorities/briefs/drafts" },
+              "title": { "type": "string" },
+              "url": { "type": "string", "format": "uri" },
+              "shipped_at": { "type": "string", "format": "date-time" },
+              "targets_query_ids": { "type": "array", "items": { "type": "string" } }
+            }
+          }
+        }
+      }
+    },
+
+    "query_movements": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "type": "object",
+        "required": ["query", "delta", "verdict_change"],
+        "additionalProperties": false,
+        "properties": {
+          "query": { "type": "string" },
+          "query_id": { "type": "string" },
+          "previous": {
+            "type": "object",
+            "properties": {
+              "mention_rate": { "type": "number" },
+              "avg_position": { "type": ["number", "null"] },
+              "verdict": { "type": "string" }
+            }
+          },
+          "current": {
+            "type": "object",
+            "properties": {
+              "mention_rate": { "type": "number" },
+              "avg_position": { "type": ["number", "null"] },
+              "verdict": { "type": "string" }
+            }
+          },
+          "delta": {
+            "type": "object",
+            "required": ["mention_rate_delta"],
+            "properties": {
+              "mention_rate_delta": { "type": "number" },
+              "position_delta": { "type": ["number", "null"], "description": "Negative = improved (better rank). Positive = regressed." }
+            }
+          },
+          "verdict_change": {
+            "type": "string",
+            "enum": ["improved", "stable", "regressed", "newly-won", "newly-lost"]
+          },
+          "attributed_actions": {
+            "type": "array",
+            "description": "Action ids from meta.actions_in_window that plausibly caused this movement. Empty array if movement is unexplained.",
+            "items": { "type": "string" }
+          },
+          "attribution_confidence": { "type": "string", "enum": ["high", "medium", "low", "unknown"] },
+          "notes": { "type": "string" }
+        }
+      }
+    },
+
+    "summary": {
+      "type": "object",
+      "required": ["queries_improved", "queries_regressed", "queries_stable", "actions_with_impact", "actions_without_impact"],
+      "additionalProperties": false,
+      "properties": {
+        "queries_improved": { "type": "integer" },
+        "queries_regressed": { "type": "integer" },
+        "queries_stable": { "type": "integer" },
+        "newly_won": { "type": "integer" },
+        "newly_lost": { "type": "integer" },
+        "overall_score_delta": { "type": "number" },
+        "actions_with_impact": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "required": ["action_id"],
+            "properties": {
+              "action_id": { "type": "string" },
+              "queries_moved": { "type": "array", "items": { "type": "string" } },
+              "estimated_score_contribution": { "type": "number" }
+            }
+          }
+        },
+        "actions_without_impact": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "required": ["action_id", "diagnosis"],
+            "properties": {
+              "action_id": { "type": "string" },
+              "diagnosis": { "type": "string", "description": "Why didn't this move the needle? Used to refine next priorities." }
+            }
+          }
+        },
+        "next_round_recommendations": {
+          "type": "array",
+          "items": { "type": "string" },
+          "description": "Plain-language hand-off into the next 03-gap run"
+        }
+      }
+    }
+  }
+}

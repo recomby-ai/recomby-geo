@@ -1,0 +1,119 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://recomby.ai/schemas/visibility_baseline.schema.json",
+  "title": "GEO Visibility Baseline",
+  "description": "Cross-LLM × cross-query mention/position/citation baseline. Output of 02-audit. Format aligns with gego (AI2HU/gego) and geo-aeo-tracker (danishashko/geo-aeo-tracker) conventions so audit shims can write here directly.",
+  "type": "object",
+  "required": ["meta", "runs", "summary"],
+  "additionalProperties": false,
+  "properties": {
+    "meta": {
+      "type": "object",
+      "required": ["client_slug", "captured_at", "models", "queries_count", "schema_version"],
+      "additionalProperties": false,
+      "properties": {
+        "client_slug": { "type": "string" },
+        "captured_at": { "type": "string", "format": "date-time" },
+        "schema_version": { "type": "string", "const": "0.1.0" },
+        "models": { "type": "array", "items": { "type": "string" }, "minItems": 1 },
+        "queries_count": { "type": "integer", "minimum": 1 },
+        "runs_count": { "type": "integer", "minimum": 1 },
+        "tool_used": { "type": "string", "description": "e.g., 'gego@v0.3', 'geo-aeo-tracker@v1.2', 'native'" },
+        "audit_round": { "type": "integer", "minimum": 1, "description": "1 = first baseline; 2+ = re-audit rounds" }
+      }
+    },
+
+    "runs": {
+      "type": "array",
+      "minItems": 1,
+      "description": "One row per (query × model) execution.",
+      "items": {
+        "type": "object",
+        "required": ["query", "model", "captured_at", "mentioned", "raw_response"],
+        "additionalProperties": false,
+        "properties": {
+          "query": { "type": "string" },
+          "query_id": { "type": "string", "description": "Stable id matching brand_context.target_queries entry" },
+          "model": { "type": "string", "enum": ["chatgpt", "claude", "perplexity", "gemini", "copilot", "grok", "google-ai-overview", "other"] },
+          "model_version": { "type": "string" },
+          "captured_at": { "type": "string", "format": "date-time" },
+          "mentioned": { "type": "boolean", "description": "Was the client brand explicitly named in the response?" },
+          "position": { "type": ["integer", "null"], "minimum": 1, "description": "Rank in recommendation list, null if not mentioned" },
+          "description_quoted": { "type": "string", "description": "Verbatim phrase the AI used to describe the brand" },
+          "competitors_mentioned": { "type": "array", "items": { "type": "string" } },
+          "citations": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "required": ["url"],
+              "properties": {
+                "url": { "type": "string", "format": "uri" },
+                "domain": { "type": "string" },
+                "is_owned_by_client": { "type": "boolean" },
+                "verified_live": { "type": "boolean", "description": "True if WebFetch confirmed the URL still resolves and is on-topic" }
+              }
+            }
+          },
+          "sentiment": { "type": "string", "enum": ["positive", "neutral", "negative", "unknown"] },
+          "raw_response": { "type": "string", "description": "Full response text. Required for diff/attribution in 07-reaudit." }
+        }
+      }
+    },
+
+    "summary": {
+      "type": "object",
+      "required": ["overall_visibility_score", "per_query", "per_model"],
+      "additionalProperties": false,
+      "description": "Aggregates. overall_visibility_score follows geo-aeo-tracker 0-100 convention.",
+      "properties": {
+        "overall_visibility_score": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 100,
+          "description": "Composite of mention_rate × position × citation_quality, 0-100."
+        },
+        "mention_rate": { "type": "number", "minimum": 0, "maximum": 1 },
+        "avg_position_when_mentioned": { "type": ["number", "null"], "minimum": 1 },
+        "owned_citation_rate": { "type": "number", "minimum": 0, "maximum": 1, "description": "Fraction of citations pointing to client-owned domains" },
+        "per_query": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "required": ["query", "mention_rate"],
+            "properties": {
+              "query": { "type": "string" },
+              "query_id": { "type": "string" },
+              "mention_rate": { "type": "number", "minimum": 0, "maximum": 1 },
+              "avg_position": { "type": ["number", "null"] },
+              "verdict": { "type": "string", "enum": ["winning", "contested", "absent", "regressing"] }
+            }
+          }
+        },
+        "per_model": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "required": ["model", "mention_rate"],
+            "properties": {
+              "model": { "type": "string" },
+              "mention_rate": { "type": "number", "minimum": 0, "maximum": 1 },
+              "queries_covered": { "type": "integer" }
+            }
+          }
+        },
+        "competitor_landscape": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "required": ["competitor"],
+            "properties": {
+              "competitor": { "type": "string" },
+              "mention_rate": { "type": "number", "minimum": 0, "maximum": 1 },
+              "queries_won": { "type": "array", "items": { "type": "string" } }
+            }
+          }
+        }
+      }
+    }
+  }
+}

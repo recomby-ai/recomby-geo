@@ -1,0 +1,18 @@
+{
+  "$schema": "https://json.schemastore.org/claude-plugin-marketplace.json",
+  "name": "recomby-geo",
+  "owner": {
+    "name": "Recomby.ai",
+    "url": "https://github.com/recomby-ai"
+  },
+  "plugins": [
+    {
+      "name": "recomby-geo",
+      "source": "./plugins/recomby-geo",
+      "description": "GEO (Generative Engine Optimization) skill orchestration: 7 skills + 4 JSON schemas. Build brand context, audit visibility across LLMs, find gaps, brief content with human-in-loop slots, produce drafts, distribute, and re-audit with attribution. Per-client folder convention; reuses gego/geo-aeo-tracker/toprank shims under the hood.",
+      "version": "0.1.0",
+      "category": "marketing",
+      "tags": ["geo", "aeo", "seo", "ai-search", "content-orchestration"]
+    }
+  ]
+}

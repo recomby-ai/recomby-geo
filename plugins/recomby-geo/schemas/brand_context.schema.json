@@ -1,0 +1,260 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://recomby.ai/schemas/brand_context.schema.json",
+  "title": "GEO Brand Context",
+  "description": "Three-layer GEO business context. Single source of truth for every downstream skill in recomby-geo. Modeled after Forrester ICP + Schema.org Organization + GEO-specific fields validated by gego/geo-aeo-tracker community usage.",
+  "type": "object",
+  "required": ["meta", "layer_1_business_identity", "target_queries"],
+  "additionalProperties": false,
+  "properties": {
+    "meta": {
+      "type": "object",
+      "required": ["client_slug", "created_at", "schema_version"],
+      "additionalProperties": false,
+      "properties": {
+        "client_slug": { "type": "string", "pattern": "^[a-z0-9-]+$" },
+        "created_at": { "type": "string", "format": "date-time" },
+        "updated_at": { "type": "string", "format": "date-time" },
+        "schema_version": { "type": "string", "const": "0.1.0" },
+        "status": { "type": "string", "enum": ["bootstrapped", "complete", "active", "stale"] },
+        "language": { "type": "string", "description": "Primary content language (e.g., zh-CN, en-US)" }
+      }
+    },
+
+    "layer_1_business_identity": {
+      "type": "object",
+      "description": "5 hard-required fields. Every downstream skill assumes these are non-empty and substantive.",
+      "required": ["company", "product_or_service", "target_customer", "competitors", "core_differentiator", "competitive_moat"],
+      "additionalProperties": false,
+      "properties": {
+        "company": {
+          "type": "object",
+          "required": ["name"],
+          "properties": {
+            "name": { "type": "string", "minLength": 1 },
+            "legal_name": { "type": "string" },
+            "founded_year": { "type": "integer" },
+            "url": { "type": "string", "format": "uri" },
+            "one_line_description": { "type": "string" }
+          }
+        },
+        "product_or_service": {
+          "type": "object",
+          "required": ["category", "description"],
+          "properties": {
+            "category": { "type": "string", "description": "AI uses category for recommendation matching. Be specific." },
+            "description": { "type": "string" },
+            "core_offerings": { "type": "array", "items": { "type": "string" } }
+          }
+        },
+        "target_customer": {
+          "type": "object",
+          "required": ["primary_icp"],
+          "description": "Forrester-style ICP. AI judges answer-to-asker fit using these attributes.",
+          "properties": {
+            "primary_icp": {
+              "type": "object",
+              "required": ["persona_label", "demographics", "jobs_to_be_done"],
+              "properties": {
+                "persona_label": { "type": "string" },
+                "demographics": {
+                  "type": "object",
+                  "properties": {
+                    "role_or_segment": { "type": "string" },
+                    "geography": { "type": "string" },
+                    "company_size_or_age_range": { "type": "string" }
+                  }
+                },
+                "jobs_to_be_done": { "type": "array", "items": { "type": "string" }, "minItems": 1 },
+                "pain_points": { "type": "array", "items": { "type": "string" } },
+                "search_behavior": { "type": "string", "description": "Where do they search (ChatGPT, Google, Reddit, peer recs)" }
+              }
+            },
+            "secondary_icps": { "type": "array", "items": { "$ref": "#/properties/layer_1_business_identity/properties/target_customer/properties/primary_icp" } }
+          }
+        },
+        "competitors": {
+          "type": "array",
+          "minItems": 1,
+          "description": "1-3 typically. Verified via WebFetch on their public site, NOT just AI's description.",
+          "items": {
+            "type": "object",
+            "required": ["name", "url"],
+            "properties": {
+              "name": { "type": "string" },
+              "url": { "type": "string", "format": "uri" },
+              "core_approach": { "type": "string" },
+              "strengths": { "type": "array", "items": { "type": "string" } },
+              "weaknesses": { "type": "array", "items": { "type": "string" } },
+              "ai_visibility_notes": { "type": "string", "description": "Which AI engines cite them and for what queries" },
+              "key_differentiator_vs_us": { "type": "string" },
+              "verified_at": { "type": "string", "format": "date-time" }
+            }
+          }
+        },
+        "core_differentiator": {
+          "type": "string",
+          "minLength": 10,
+          "description": "Why a buyer would pick us over the named competitors. Concrete, not 'we provide quality'."
+        },
+        "competitive_moat": {
+          "type": "string",
+          "minLength": 10,
+          "description": "One sentence: why AI should recommend this business specifically."
+        }
+      }
+    },
+
+    "layer_2_market_reality": {
+      "type": "object",
+      "description": "How the AI ecosystem currently sees the category. Filled by Path C (market research) in 01-intake.",
+      "additionalProperties": false,
+      "properties": {
+        "ai_positioning": { "type": "string", "description": "How AI currently describes this category" },
+        "ai_recommends": {
+          "type": "array",
+          "description": "Which competitors AI cites and why, by model",
+          "items": {
+            "type": "object",
+            "required": ["model", "query", "recommended"],
+            "properties": {
+              "model": { "type": "string", "enum": ["chatgpt", "claude", "perplexity", "gemini", "copilot", "grok", "google-ai-overview", "other"] },
+              "query": { "type": "string" },
+              "recommended": { "type": "array", "items": { "type": "string" } },
+              "us_mentioned": { "type": "boolean" },
+              "us_position": { "type": ["integer", "null"], "minimum": 1 },
+              "captured_at": { "type": "string", "format": "date-time" }
+            }
+          }
+        },
+        "certainty_gaps": {
+          "type": "array",
+          "items": { "type": "string" },
+          "description": "Where AI answers are weak, outdated, or conflicting. Each gap is a content opportunity."
+        },
+        "real_user_questions": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "required": ["question"],
+            "properties": {
+              "question": { "type": "string" },
+              "source": { "type": "string", "description": "Reddit thread URL, forum, AI follow-up, etc." },
+              "intent": { "type": "string", "enum": ["informational", "comparison", "transactional", "navigational", "status"] }
+            }
+          }
+        },
+        "citation_sources": {
+          "type": "array",
+          "description": "Sources AI actually cites for this category. WebFetch-verified.",
+          "items": {
+            "type": "object",
+            "required": ["url"],
+            "properties": {
+              "url": { "type": "string", "format": "uri" },
+              "domain_authority_notes": { "type": "string" },
+              "freshness": { "type": "string" },
+              "verified_at": { "type": "string", "format": "date-time" }
+            }
+          }
+        }
+      }
+    },
+
+    "layer_3_value_gaps": {
+      "type": "array",
+      "description": "Opportunity slots: question types where this business can win but currently isn't winning.",
+      "items": {
+        "type": "object",
+        "required": ["opportunity"],
+        "properties": {
+          "opportunity": { "type": "string" },
+          "rationale": { "type": "string" },
+          "supporting_evidence": { "type": "array", "items": { "type": "string" } }
+        }
+      }
+    },
+
+    "target_queries": {
+      "type": "array",
+      "description": "Queries the brand wants to be cited for in AI search. Used by 02-audit and 07-reaudit.",
+      "minItems": 1,
+      "items": {
+        "type": "object",
+        "required": ["query", "intent"],
+        "properties": {
+          "query": { "type": "string" },
+          "intent": { "type": "string", "enum": ["informational", "comparison", "transactional", "navigational", "status"] },
+          "priority": { "type": "string", "enum": ["P0", "P1", "P2"] },
+          "rationale": { "type": "string" },
+          "expected_answer_shape": { "type": "string", "description": "list / single-pick / comparison-table / how-to / definition" }
+        }
+      }
+    },
+
+    "voice_samples": {
+      "type": "array",
+      "description": "URL or excerpt of canonical brand voice. Used by 05-production for tone matching.",
+      "items": {
+        "type": "object",
+        "required": ["source"],
+        "properties": {
+          "source": { "type": "string" },
+          "excerpt": { "type": "string" },
+          "voice_attributes": { "type": "array", "items": { "type": "string" }, "description": "e.g., 'authoritative', 'concise', 'data-driven'" }
+        }
+      }
+    },
+
+    "content_assets": {
+      "type": "array",
+      "description": "Existing client-owned content. 03-gap consults this to avoid duplicate-topic waste.",
+      "items": {
+        "type": "object",
+        "required": ["url", "type"],
+        "properties": {
+          "url": { "type": "string", "format": "uri" },
+          "type": { "type": "string", "enum": ["homepage", "product-page", "blog-post", "case-study", "whitepaper", "comparison-page", "faq", "doc", "landing", "other"] },
+          "title": { "type": "string" },
+          "covers_query_ids": { "type": "array", "items": { "type": "string" } },
+          "freshness": { "type": "string", "format": "date" }
+        }
+      }
+    },
+
+    "extended": {
+      "type": "object",
+      "description": "Optional enrichments. Only required when relevant skills need them.",
+      "additionalProperties": false,
+      "properties": {
+        "geography": { "type": "string" },
+        "pricing_tier": { "type": "string" },
+        "website_backend": {
+          "type": "object",
+          "properties": {
+            "cms": { "type": "string", "description": "wordpress / strapi / contentful / ghost / custom / none" },
+            "admin_url": { "type": "string", "format": "uri" }
+          }
+        },
+        "content_channels": { "type": "array", "items": { "type": "string" } },
+        "faq_patterns": { "type": "array", "items": { "type": "string" } },
+        "gsc_signals": { "type": "string", "description": "Position 5-20 keywords if available" },
+        "ai_readiness_notes": { "type": "string", "description": "Filled by 06-distribution after schema/llms.txt audit" }
+      }
+    },
+
+    "collection_log": {
+      "type": "array",
+      "description": "Append-only audit trail. Every 01-intake update appends here.",
+      "items": {
+        "type": "object",
+        "required": ["timestamp", "source", "added"],
+        "properties": {
+          "timestamp": { "type": "string", "format": "date-time" },
+          "source": { "type": "string" },
+          "added": { "type": "string" }
+        }
+      }
+    }
+  }
+}

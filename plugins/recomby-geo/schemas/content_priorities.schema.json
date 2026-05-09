@@ -1,0 +1,98 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://recomby.ai/schemas/content_priorities.schema.json",
+  "title": "GEO Content Priorities",
+  "description": "Output of 03-gap. Ranked list of content actions that should move visibility, derived from brand_context + visibility_baseline. Consumed by 04-content-brief.",
+  "type": "object",
+  "required": ["meta", "priorities"],
+  "additionalProperties": false,
+  "properties": {
+    "meta": {
+      "type": "object",
+      "required": ["client_slug", "generated_at", "schema_version", "based_on"],
+      "additionalProperties": false,
+      "properties": {
+        "client_slug": { "type": "string" },
+        "generated_at": { "type": "string", "format": "date-time" },
+        "schema_version": { "type": "string", "const": "0.1.0" },
+        "based_on": {
+          "type": "object",
+          "required": ["brand_context_updated_at", "baseline_captured_at"],
+          "properties": {
+            "brand_context_updated_at": { "type": "string", "format": "date-time" },
+            "baseline_captured_at": { "type": "string", "format": "date-time" }
+          }
+        },
+        "framework_notes": { "type": "string", "description": "Which prioritization framework was applied (e.g., CITE, CORE-EEAT, custom)" }
+      }
+    },
+
+    "priorities": {
+      "type": "array",
+      "minItems": 1,
+      "description": "Ordered by ranking field. Lower rank number = higher priority.",
+      "items": {
+        "type": "object",
+        "required": ["ranking", "query", "current_status", "opportunity_type", "recommended_format", "difficulty", "expected_impact"],
+        "additionalProperties": false,
+        "properties": {
+          "ranking": { "type": "integer", "minimum": 1 },
+          "id": { "type": "string", "description": "Stable slug used as filename in briefs/ and drafts/" },
+          "query": { "type": "string" },
+          "query_id": { "type": "string" },
+          "intent": { "type": "string", "enum": ["informational", "comparison", "transactional", "navigational", "status"] },
+          "current_status": {
+            "type": "object",
+            "required": ["verdict"],
+            "properties": {
+              "verdict": { "type": "string", "enum": ["winning", "contested", "absent", "regressing"] },
+              "current_mention_rate": { "type": "number", "minimum": 0, "maximum": 1 },
+              "competitors_winning": { "type": "array", "items": { "type": "string" } },
+              "competitor_strength_notes": { "type": "string" }
+            }
+          },
+          "opportunity_type": {
+            "type": "string",
+            "enum": [
+              "fill-absence",
+              "displace-competitor",
+              "deepen-existing",
+              "freshness-update",
+              "claim-comparison",
+              "first-party-data",
+              "expert-pov"
+            ],
+            "description": "What kind of move wins this query"
+          },
+          "recommended_format": {
+            "type": "string",
+            "enum": ["comparison-page", "deep-guide", "case-study", "data-report", "faq-block", "definition-page", "list-roundup", "how-to", "expert-essay"]
+          },
+          "required_assets": {
+            "type": "array",
+            "description": "What real-world inputs the human-in-loop step (04-content-brief) must collect",
+            "items": {
+              "type": "string",
+              "examples": ["original-data", "expert-quote", "customer-case", "screenshots", "pricing-table", "methodology-detail"]
+            }
+          },
+          "difficulty": { "type": "string", "enum": ["low", "medium", "high"] },
+          "expected_impact": {
+            "type": "object",
+            "required": ["score"],
+            "properties": {
+              "score": { "type": "integer", "minimum": 1, "maximum": 10 },
+              "rationale": { "type": "string" }
+            }
+          },
+          "rationale": { "type": "string", "description": "Why this priority? Cite the brand_context value gap or baseline weakness." },
+          "rejected_alternatives": {
+            "type": "array",
+            "items": { "type": "string" },
+            "description": "Queries we considered but de-prioritized, with reason"
+          }
+        }
+      }
+    }
+  }
+}
