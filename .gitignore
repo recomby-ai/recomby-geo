@@ -15,3 +15,8 @@ clients/
 
 # Maintainer notes (private; public-facing doc is README.md)
 CLAUDE.md
+
+# Local-only reference materials (not part of the open-source repo)
+geo-employee/
+recomby.ai*
+*.pdf

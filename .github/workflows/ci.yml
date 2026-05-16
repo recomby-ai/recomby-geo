@@ -1,0 +1,81 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+jobs:
+  schema-validation:
+    name: JSON Schema validation
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Install jsonschema
+        run: pip install jsonschema
+      - name: Validate all 4 schemas (Draft 2020-12)
+        run: |
+          python3 - <<'PY'
+          import json, sys
+          from jsonschema import Draft202012Validator
+          schemas = [
+              "plugins/recomby-geo/schemas/brand_context.schema.json",
+              "plugins/recomby-geo/schemas/visibility_baseline.schema.json",
+              "plugins/recomby-geo/schemas/content_priorities.schema.json",
+              "plugins/recomby-geo/schemas/attribution_diff.schema.json",
+          ]
+          for s in schemas:
+              with open(s) as f:
+                  Draft202012Validator.check_schema(json.load(f))
+              print(f"OK  {s}")
+          PY
+
+  python-compile:
+    name: Python compile (vendored skills)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: py_compile all .py under skills/
+        run: |
+          python3 - <<'PY'
+          import py_compile, os, sys
+          failed = []
+          for root, _, files in os.walk("plugins/recomby-geo/skills"):
+              for f in files:
+                  if f.endswith(".py"):
+                      path = os.path.join(root, f)
+                      try:
+                          py_compile.compile(path, doraise=True)
+                      except py_compile.PyCompileError as e:
+                          failed.append((path, str(e)))
+          if failed:
+              for p, err in failed:
+                  print(f"FAIL {p}\n{err}")
+              sys.exit(1)
+          print("All Python files compile.")
+          PY
+
+  link-check:
+    name: Link lint (README + curated lists)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Run lychee
+        uses: lycheeverse/lychee-action@v2
+        with:
+          args: >-
+            --no-progress
+            --max-concurrency 4
+            --accept 200,201,202,203,204,206,301,302,303,304,307,308,403,429
+            README.md
+            README.en.md
+            agents.md
+            clis.md
+          fail: false

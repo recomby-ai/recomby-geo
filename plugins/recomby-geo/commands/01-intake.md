@@ -19,7 +19,7 @@ pipeline can identify the exact questions this business should own.
 
 - `clients/<slug>/inputs/` — materials provided by the client (any of: PDF,
   DOCX, PPTX, XLSX, image, plaintext notes, URL list).
-- The user may also provide context conversationally during this skill run.
+- The user may also provide context conversationally during this command run.
 
 ## Output
 

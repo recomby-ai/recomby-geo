@@ -5,8 +5,8 @@ argument-hint: "<client-folder, e.g. clients/acme>"
 
 # 07 · Re-audit & Attribution
 
-Closes the loop. Without this skill, the pipeline is open-loop — actions
-go out, no proof they did anything. With this skill, every action gets
+Closes the loop. Without this command, the pipeline is open-loop — actions
+go out, no proof they did anything. With this command, every action gets
 graded: did it move queries, which queries, by how much, with what
 confidence.
 

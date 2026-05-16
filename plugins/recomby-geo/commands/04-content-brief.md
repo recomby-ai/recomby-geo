@@ -5,13 +5,13 @@ argument-hint: "<client-folder, e.g. clients/acme>"
 
 # 04 · Content Brief — Human-in-Loop Checkpoint
 
-This is the most important skill in the pipeline. Without it, the system
+This is the most important command in the pipeline. Without it, the system
 collapses into the same generic AI-content-mill that has saturated the
 GEO commodity layer. With it, the system produces content AI engines
 actually cite — because it contains things AI can't auto-generate.
 
-**The principle**: skills build the scaffold; humans fill the soul.
-This skill outputs scaffold with explicit, named, schema-tight blank
+**The principle**: the pipeline builds the scaffold; humans fill the soul.
+This command outputs scaffold with explicit, named, schema-tight blank
 spaces. Until those blanks are filled, 05-production refuses to run.
 
 ---
@@ -213,7 +213,7 @@ When the expert returns a filled brief:
 3. If all slots filled: set `status: ready-for-production`. Else: keep
    `awaiting-expert-fill` and report which slots are still empty.
 4. **Do NOT auto-fill empty slots with AI content.** That defeats the
-   entire purpose of this skill.
+   entire purpose of this command.
 
 ---
 
